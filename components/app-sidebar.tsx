@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   Database,
   Megaphone,
@@ -14,11 +14,11 @@ import {
   Landmark,
   LifeBuoy,
   Settings,
-} from "lucide-react"
+} from "lucide-react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/nav-main";
+import { NavSecondary } from "@/components/nav-secondary";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -27,7 +27,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const data = {
   user: {
@@ -114,11 +114,12 @@ const data = {
       icon: Settings,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
+      collapsible="icon"
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
       {...props}
     >
@@ -131,8 +132,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="text-sm font-bold">TM</span>
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold text-foreground">TMX Marketing</span>
-                  <span className="truncate text-xs text-muted-foreground">Sales & Deals Platform</span>
+                  <span className="truncate font-semibold text-foreground">
+                    TMX Marketing
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    Sales & Deals Platform
+                  </span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -147,5 +152,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

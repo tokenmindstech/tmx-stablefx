@@ -88,6 +88,14 @@ const layouts = [
     tags: ["Sidebar Left", "Tab Switcher", "Multi-Panel"],
     accent: "#FF4FD8",
   },
+  {
+    id: 12,
+    name: "HubSpot Style",
+    description:
+      "Narrow dark icon-only sidebar. Clicking a nav item opens a flyout sub-menu panel that slides in from the left — just like HubSpot.",
+    tags: ["Dark Sidebar", "Flyout Menu", "Icon-Only Nav"],
+    accent: "#FF4FD8",
+  },
 ];
 
 export default function LayoutsIndex() {

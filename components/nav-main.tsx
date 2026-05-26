@@ -78,7 +78,10 @@ function NavItemCollapsed({ item }: { item: NavItem }) {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <SidebarMenuButton className="hover:bg-[#FFF5FC] hover:text-[#FF4FD8] data-[active=true]:bg-[#FFF5FC] data-[active=true]:text-[#FF4FD8]">
+          <SidebarMenuButton
+            onClick={() => setOpen(!open)}
+            className="hover:bg-[#FFF5FC] hover:text-[#FF4FD8] data-[active=true]:bg-[#FFF5FC] data-[active=true]:text-[#FF4FD8]"
+          >
             <item.icon className="size-4" />
             <span className="font-medium">{item.title}</span>
           </SidebarMenuButton>
@@ -131,16 +134,12 @@ export function NavMain({ items }: { items: NavItem[] }) {
           return (
             <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  tooltip={item.title}
-                  className="hover:bg-[#FFF5FC] hover:text-[#FF4FD8] data-[active=true]:bg-[#FFF5FC] data-[active=true]:text-[#FF4FD8]"
-                >
-                  <a href={item.url}>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton className="hover:bg-[#FFF5FC] hover:text-[#FF4FD8] data-[active=true]:bg-[#FFF5FC] data-[active=true]:text-[#FF4FD8]">
                     <item.icon className="size-4" />
                     <span className="font-medium">{item.title}</span>
-                  </a>
-                </SidebarMenuButton>
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
                 {item.items?.length ? (
                   <>
                     <CollapsibleTrigger asChild>

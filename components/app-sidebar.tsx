@@ -44,7 +44,7 @@ const data = {
       items: [
         {
           title: "Database Partner",
-          url: "#",
+          url: "/dashboard/kol-database",
           icon: Database,
         },
         {

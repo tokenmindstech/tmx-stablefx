@@ -2,7 +2,7 @@
 
 import { SidebarIcon } from "lucide-react"
 
-import { SearchForm } from '@/components/search-form'
+import { SearchForm } from "@/components/search-form"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,19 +10,19 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { useSidebar } from '@/components/ui/sidebar'
+} from "@/components/ui/breadcrumb"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { useSidebar } from "@/components/ui/sidebar"
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar()
 
   return (
-    <header className="sticky top-0 z-50 flex w-full items-center border-b bg-background">
+    <header className="sticky top-0 z-50 flex w-full items-center border-b border-border/50 bg-background">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
         <Button
-          className="h-8 w-8"
+          className="h-8 w-8 hover:bg-[#FFF5FC] hover:text-[#FF4FD8]"
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
@@ -33,11 +33,11 @@ export function SiteHeader() {
         <Breadcrumb className="hidden sm:block">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="#">Build Your Application</BreadcrumbLink>
+              <BreadcrumbLink href="#" className="hover:text-[#FF4FD8]">TMX Marketing</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+              <BreadcrumbPage className="text-foreground font-medium">Dashboard</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>

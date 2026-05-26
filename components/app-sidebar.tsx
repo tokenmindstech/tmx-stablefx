@@ -2,22 +2,23 @@
 
 import * as React from "react"
 import {
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
+  Database,
+  Megaphone,
+  GitBranch,
+  FileText,
+  DollarSign,
+  Coins,
+  Users,
+  ShieldCheck,
+  ArrowRightLeft,
+  Landmark,
   LifeBuoy,
-  Map,
-  PieChart,
-  Send,
-  Settings2,
-  SquareTerminal,
+  Settings,
 } from "lucide-react"
 
-import { NavMain } from '@/components/nav-main'
-import { NavProjects } from '@/components/nav-projects'
-import { NavSecondary } from '@/components/nav-secondary'
-import { NavUser } from '@/components/nav-user'
+import { NavMain } from "@/components/nav-main"
+import { NavSecondary } from "@/components/nav-secondary"
+import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -26,97 +27,77 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar'
+} from "@/components/ui/sidebar"
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Admin User",
+    email: "admin@tmxmarketing.com",
+    avatar: "/avatars/admin.jpg",
   },
   navMain: [
     {
-      title: "Playground",
+      title: "GEO/KOL",
       url: "#",
-      icon: SquareTerminal,
+      icon: Megaphone,
       isActive: true,
       items: [
         {
-          title: "History",
+          title: "Database Partner",
           url: "#",
+          icon: Database,
         },
         {
-          title: "Starred",
+          title: "Campaign",
           url: "#",
+          icon: Megaphone,
         },
         {
-          title: "Settings",
+          title: "Pipeline",
           url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
+          icon: GitBranch,
         },
         {
-          title: "Explorer",
+          title: "Content/Brief",
           url: "#",
+          icon: FileText,
         },
         {
-          title: "Quantum",
+          title: "Cost",
           url: "#",
+          icon: DollarSign,
         },
       ],
     },
     {
-      title: "Documentation",
+      title: "TGE",
       url: "#",
-      icon: BookOpen,
+      icon: Coins,
       items: [
         {
-          title: "Introduction",
+          title: "Token Information",
           url: "#",
+          icon: Coins,
         },
         {
-          title: "Get Started",
+          title: "User List",
           url: "#",
+          icon: Users,
         },
         {
-          title: "Tutorials",
+          title: "KYC List",
           url: "#",
+          icon: ShieldCheck,
         },
         {
-          title: "Changelog",
+          title: "Transactions",
           url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
+          icon: ArrowRightLeft,
         },
         {
-          title: "Team",
+          title: "ICO/STO",
           url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
+          icon: Landmark,
         },
       ],
     },
@@ -128,26 +109,9 @@ const data = {
       icon: LifeBuoy,
     },
     {
-      title: "Feedback",
+      title: "Settings",
       url: "#",
-      icon: Send,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      icon: Settings,
     },
   ],
 }
@@ -163,12 +127,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Command className="size-4" />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-[#FF4FD8] text-white">
+                  <span className="text-sm font-bold">TM</span>
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate font-semibold text-foreground">TMX Marketing</span>
+                  <span className="truncate text-xs text-muted-foreground">Sales & Deals Platform</span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -177,7 +141,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

@@ -6,7 +6,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible'
+} from "@/components/ui/collapsible"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -17,7 +17,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from '@/components/ui/sidebar'
+} from "@/components/ui/sidebar"
 
 export function NavMain({
   items,
@@ -30,26 +30,33 @@ export function NavMain({
     items?: {
       title: string
       url: string
+      icon?: LucideIcon
     }[]
   }[]
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        Platform
+      </SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton 
+                asChild 
+                tooltip={item.title}
+                className="hover:bg-[#FFF5FC] hover:text-[#FF4FD8] data-[active=true]:bg-[#FFF5FC] data-[active=true]:text-[#FF4FD8]"
+              >
                 <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
+                  <item.icon className="size-4" />
+                  <span className="font-medium">{item.title}</span>
                 </a>
               </SidebarMenuButton>
               {item.items?.length ? (
                 <>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuAction className="data-[state=open]:rotate-90">
+                    <SidebarMenuAction className="data-[state=open]:rotate-90 hover:bg-[#FFF5FC] hover:text-[#FF4FD8]">
                       <ChevronRight />
                       <span className="sr-only">Toggle</span>
                     </SidebarMenuAction>
@@ -58,8 +65,12 @@ export function NavMain({
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
-                            <a href={subItem.url}>
+                          <SidebarMenuSubButton 
+                            asChild
+                            className="hover:bg-[#FFF5FC] hover:text-[#FF4FD8]"
+                          >
+                            <a href={subItem.url} className="flex items-center gap-2">
+                              {subItem.icon && <subItem.icon className="size-3.5 text-muted-foreground" />}
                               <span>{subItem.title}</span>
                             </a>
                           </SidebarMenuSubButton>

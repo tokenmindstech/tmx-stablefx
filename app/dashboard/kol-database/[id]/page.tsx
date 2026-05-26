@@ -7,7 +7,7 @@ import {
   ArrowLeft,
   Mail,
   MessageCircle,
-  Twitter,
+  X as XIcon,
   BadgeCheck,
   Globe,
   TrendingUp,
@@ -71,7 +71,7 @@ const CONTACT_ICON: Record<ContactMethod["type"], React.ReactNode> = {
   Email: <Mail className="h-3.5 w-3.5" />,
   Telegram: <MessageCircle className="h-3.5 w-3.5" />,
   Discord: <Activity className="h-3.5 w-3.5" />,
-  "Twitter DM": <Twitter className="h-3.5 w-3.5" />,
+  "Twitter DM": <XIcon className="h-3.5 w-3.5" />,
   WhatsApp: <MessageCircle className="h-3.5 w-3.5" />,
 };
 

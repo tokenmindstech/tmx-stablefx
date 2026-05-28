@@ -30,15 +30,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useKOLStore } from "@/lib/kol-store";
 import {
-  KOL_DATA,
   KOL_NICHES,
   KOL_PLATFORMS,
   formatFollowers,
   type KOLNiche,
   type KOLPlatform,
   type KOLRisk,
-} from "@/lib/kol-data";
+} from "@/lib/kol-store";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -58,6 +58,7 @@ const RISK_STYLE: Record<KOLRisk, string> = {
 };
 
 export default function KolDatabasePage() {
+  const { kols, deleteKOL } = useKOLStore();
   const [search, setSearch] = React.useState("");
   const [niche, setNiche] = React.useState<string>("any");
   const [region, setRegion] = React.useState<string>("any");
@@ -69,16 +70,16 @@ export default function KolDatabasePage() {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
   const regions = React.useMemo(() => {
-    const r = new Set(KOL_DATA.map((k) => k.region));
+    const r = new Set(kols.map((k) => k.region));
     return Array.from(r).sort();
-  }, []);
+  }, [kols]);
 
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase();
     const min = parseInt(minFollowers) || 0;
     const max = maxFollowers ? parseInt(maxFollowers) : Infinity;
 
-    return KOL_DATA.filter((kol) => {
+    return kols.filter((kol) => {
       if (
         q &&
         !kol.name.toLowerCase().includes(q) &&
@@ -97,7 +98,7 @@ export default function KolDatabasePage() {
       if (kol.totalFollowers > max) return false;
       return true;
     });
-  }, [search, niche, region, platform, risk, minFollowers, maxFollowers]);
+  }, [kols, search, niche, region, platform, risk, minFollowers, maxFollowers]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
@@ -474,6 +475,7 @@ export default function KolDatabasePage() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => deleteKOL(kol.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

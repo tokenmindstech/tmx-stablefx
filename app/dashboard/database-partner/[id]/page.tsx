@@ -57,12 +57,12 @@ import {
   type Currency,
 } from "@/lib/campaign-store";
 import {
-  KOL_DATA,
+  useKOLStore,
   formatFollowers,
   type KOLPlatform,
   type KOLRisk,
   type ContactMethod,
-} from "@/lib/kol-data";
+} from "@/lib/kol-store";
 
 // ─── Inline deal dialog (Add to Campaign) ─────────────────────────────────────
 
@@ -487,7 +487,7 @@ export default function KolDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = React.use(params);
-  const kol = KOL_DATA.find((k) => k.id === id);
+  const kol = useKOLStore((s) => s.kols.find((k) => k.id === id));
   if (!kol) notFound();
 
   const [addToCampaignOpen, setAddToCampaignOpen] = React.useState(false);

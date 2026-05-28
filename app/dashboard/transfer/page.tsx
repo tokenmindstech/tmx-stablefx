@@ -1,15 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  Trash2,
-  Plus,
-  ArrowUpDown,
-  Info,
-  ArrowRight,
-  Check,
-  Wallet,
-} from "lucide-react";
+import { Trash2, Plus, Info, ArrowRight, Check, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,11 +25,10 @@ import { useTransactionStore } from "@/lib/transaction-store";
 import {
   ALL_ASSETS,
   ASSET_COLORS,
-  ASSET_GRADIENTS,
-  ASSET_INITIALS,
   getRate,
   type StablecoinAsset,
 } from "@/lib/rates";
+import { AssetIcon } from "@/components/asset-icon";
 
 // ── constants ─────────────────────────────────────────────────────────────────
 
@@ -97,12 +88,7 @@ function StepIndicator({ step }: { step: number }) {
 function AssetChip({ asset }: { asset: StablecoinAsset }) {
   return (
     <div className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-muted/40 text-sm font-semibold min-w-[90px] justify-center shrink-0">
-      <div
-        className="size-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
-        style={{ background: ASSET_GRADIENTS[asset] }}
-      >
-        {ASSET_INITIALS[asset]}
-      </div>
+      <AssetIcon asset={asset} size={20} />
       {asset}
     </div>
   );
@@ -235,13 +221,6 @@ export default function TransferPage() {
     setToAmt(val);
     const n = parseFloat(val);
     setFromAmt(!isNaN(n) && n > 0 ? (n / rate).toFixed(4) : "");
-  }
-
-  function handleSwitch() {
-    const newFrom = toAmt;
-    setFromAmt(newFrom);
-    const n = parseFloat(newFrom);
-    setToAmt(!isNaN(n) && n > 0 ? (n * rate).toFixed(4) : "");
   }
 
   // ── Add vendor ───────────────────────────────────────────────────────────
@@ -455,11 +434,8 @@ export default function TransferPage() {
                           : "border-border hover:border-[#FF4FD8]/50 hover:bg-muted/20"
                       }`}
                     >
-                      <div
-                        className="size-9 rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-                        style={{ background: ASSET_GRADIENTS[w.asset] }}
-                      >
-                        {ASSET_INITIALS[w.asset]}
+                      <div className="size-9 flex items-center justify-center shrink-0">
+                        <AssetIcon asset={w.asset} size={36} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{w.name}</p>
@@ -531,17 +507,6 @@ export default function TransferPage() {
                 })}{" "}
                 {fromAsset}
               </p>
-            </div>
-
-            {/* Switch */}
-            <div className="flex justify-center">
-              <button
-                onClick={handleSwitch}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#FF4FD8] border border-border rounded-full px-3 py-1.5 transition-colors hover:border-[#FF4FD8]"
-              >
-                <ArrowUpDown className="size-3.5" />
-                Switch
-              </button>
             </div>
 
             {/* To row */}

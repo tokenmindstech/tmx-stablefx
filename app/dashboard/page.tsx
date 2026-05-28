@@ -27,13 +27,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWalletStore, type Wallet } from "@/lib/wallet-store";
-import {
-  ALL_ASSETS,
-  ASSET_COLORS,
-  ASSET_GRADIENTS,
-  ASSET_INITIALS,
-  type StablecoinAsset,
-} from "@/lib/rates";
+import { ALL_ASSETS, ASSET_COLORS, type StablecoinAsset } from "@/lib/rates";
+import { AssetIcon } from "@/components/asset-icon";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,22 +59,17 @@ function SummaryCard({
   label,
   value,
   sub,
-  gradient,
-  initials,
+  icon,
 }: {
   label: string;
   value: string;
   sub?: string;
-  gradient: string;
-  initials: string;
+  icon: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-4 bg-white rounded-xl border border-border p-4 shadow-sm">
-      <div
-        className="size-10 rounded-xl flex items-center justify-center text-[13px] font-bold text-white shrink-0"
-        style={{ background: gradient }}
-      >
-        {initials}
+      <div className="size-10 flex items-center justify-center shrink-0">
+        {icon}
       </div>
       <div>
         <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
@@ -169,20 +159,26 @@ export default function TreasuryWalletsPage() {
         <SummaryCard
           label="USDC Balance"
           value={fmtBalance(usdcTotal, "USDC")}
-          gradient={ASSET_GRADIENTS["USDC"]}
-          initials={ASSET_INITIALS["USDC"]}
+          icon={<AssetIcon asset="USDC" size={40} />}
         />
         <SummaryCard
           label="EURC Balance"
           value={fmtBalance(eurcTotal, "EURC")}
-          gradient={ASSET_GRADIENTS["EURC"]}
-          initials={ASSET_INITIALS["EURC"]}
+          icon={<AssetIcon asset="EURC" size={40} />}
         />
         <SummaryCard
           label="Active Wallets"
           value={`${activeCount} / ${totalCount}`}
-          gradient="linear-gradient(135deg, #6b7280, #374151)"
-          initials={String(activeCount)}
+          icon={
+            <div
+              className="size-10 rounded-xl flex items-center justify-center text-[13px] font-bold text-white"
+              style={{
+                background: "linear-gradient(135deg, #6b7280, #374151)",
+              }}
+            >
+              {String(activeCount)}
+            </div>
+          }
         />
       </div>
 
@@ -312,11 +308,8 @@ function WalletRow({
       {/* Wallet */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div
-            className="size-9 rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-            style={{ background: ASSET_GRADIENTS[w.asset] }}
-          >
-            {ASSET_INITIALS[w.asset]}
+          <div className="size-9 flex items-center justify-center shrink-0">
+            <AssetIcon asset={w.asset} size={36} />
           </div>
           <div>
             <p className="font-medium leading-tight">{w.name}</p>

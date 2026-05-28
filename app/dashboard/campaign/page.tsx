@@ -71,6 +71,12 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   useCampaignStore,
   type Campaign,
   type CampaignStage,
@@ -93,6 +99,8 @@ import {
   type DragOverEvent,
 } from "@dnd-kit/core";
 import { useKOLStore } from "@/lib/kol-store";
+import { useContentBriefStore } from "@/lib/content-brief-store";
+import { useCostStore } from "@/lib/cost-store";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -268,7 +276,7 @@ function CampaignDialog({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-0" align="start">
-                    <Command className="max-h-[340px]">
+                    <Command className="max-h-85">
                       <CommandInput placeholder="Search KOL by name or username…" />
                       <CommandList>
                         <CommandEmpty>No KOLs found.</CommandEmpty>
@@ -382,56 +390,26 @@ function CampaignDialog({
             </div>
           </div>
 
-          {/* Row 3: Placement type + Budget + Currency */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label>Placement type</Label>
-              <Select
-                value={form.placementType}
-                onValueChange={(v) =>
-                  setField("placementType", v as PlacementType)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PLACEMENT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Budget</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.budget || ""}
-                onChange={(e) => setField("budget", Number(e.target.value))}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Currency</Label>
-              <Select
-                value={form.currency}
-                onValueChange={(v) => setField("currency", v as Currency)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Placement type */}
+          <div className="space-y-1.5">
+            <Label>Placement type</Label>
+            <Select
+              value={form.placementType}
+              onValueChange={(v) =>
+                setField("placementType", v as PlacementType)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PLACEMENT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Row 4: Dates */}
@@ -534,6 +512,485 @@ function CampaignDialog({
   );
 }
 
+// ─── Campaign Detail Drawer ───────────────────────────────────────────────────
+
+function initCampaignForm(
+  c: Campaign,
+): Omit<Campaign, "id" | "createdAt" | "updatedAt"> {
+  return {
+    title: c.title,
+    kolId: c.kolId,
+    partnerName: c.partnerName,
+    stageId: c.stageId,
+    dealStatus: c.dealStatus,
+    outreachStage: c.outreachStage,
+    placementType: c.placementType,
+    budget: c.budget,
+    currency: c.currency,
+    goal: c.goal,
+    notes: c.notes,
+    negotiationNotes: c.negotiationNotes,
+    requirements: c.requirements,
+    startDate: c.startDate,
+    endDate: c.endDate,
+    lastContact: c.lastContact,
+    nextFollowUp: c.nextFollowUp,
+  };
+}
+
+const fmtDate = (d: string) =>
+  d
+    ? new Date(d).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
+
+function CampaignDetailDrawer({
+  campaign,
+  onClose,
+}: {
+  campaign: Campaign | null;
+  onClose: () => void;
+}) {
+  const { stages, updateCampaign, deleteCampaign } = useCampaignStore();
+  const { kols } = useKOLStore();
+  const allBriefs = useContentBriefStore((s) => s.briefs);
+  const allCosts = useCostStore((s) => s.entries);
+
+  const sortedStages = React.useMemo(
+    () => [...stages].sort((a, b) => a.order - b.order),
+    [stages],
+  );
+
+  const linkedBriefs = React.useMemo(
+    () => allBriefs.filter((b) => b.campaignId === campaign?.id),
+    [allBriefs, campaign?.id],
+  );
+  const linkedCosts = React.useMemo(
+    () => allCosts.filter((e) => e.campaignId === campaign?.id),
+    [allCosts, campaign?.id],
+  );
+  const totalCostUSD = React.useMemo(
+    () => linkedCosts.reduce((s, e) => s + (e.amountUSD || 0), 0),
+    [linkedCosts],
+  );
+
+  const [form, setForm] = React.useState<
+    Omit<Campaign, "id" | "createdAt" | "updatedAt">
+  >(campaign ? initCampaignForm(campaign) : emptyForm());
+  const [partnerOpen, setPartnerOpen] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+
+  React.useEffect(() => {
+    if (campaign) {
+      setForm(initCampaignForm(campaign));
+      setConfirmDelete(false);
+    }
+  }, [campaign]);
+
+  function setField<K extends keyof typeof form>(
+    key: K,
+    value: (typeof form)[K],
+  ) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function handleKolSelect(kolId: string) {
+    const kol = kols.find((k) => k.id === kolId);
+    if (!kol) return;
+    setForm((f) => ({ ...f, kolId, partnerName: kol.name }));
+  }
+
+  function handleSave() {
+    if (!campaign || !form.title) return;
+    updateCampaign(campaign.id, form);
+    onClose();
+  }
+
+  function handleDelete() {
+    if (!campaign) return;
+    deleteCampaign(campaign.id);
+    onClose();
+  }
+
+  return (
+    <Sheet open={!!campaign} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-xl flex flex-col p-0 gap-0"
+      >
+        <SheetHeader className="px-6 py-4 border-b shrink-0">
+          <SheetTitle className="truncate pr-6">
+            {form.title || "Campaign"}
+          </SheetTitle>
+        </SheetHeader>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Partner + Stage */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Partner</Label>
+              <Popover open={partnerOpen} onOpenChange={setPartnerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start font-normal"
+                  >
+                    {form.partnerName || "Select partner…"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0" align="start">
+                  <Command className="max-h-80">
+                    <CommandInput placeholder="Search KOL…" />
+                    <CommandList>
+                      <CommandEmpty>No KOLs found.</CommandEmpty>
+                      <CommandGroup>
+                        {kols.map((k) => (
+                          <CommandItem
+                            key={k.id}
+                            value={`${k.name} ${k.username}`}
+                            onSelect={() => {
+                              handleKolSelect(k.id);
+                              setPartnerOpen(false);
+                            }}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">
+                                {k.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                @{k.username}
+                              </div>
+                            </div>
+                            {form.kolId === k.id && (
+                              <Check className="h-4 w-4 text-[#FF4FD8] shrink-0" />
+                            )}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Stage</Label>
+              <Select
+                value={form.stageId}
+                onValueChange={(v) => setField("stageId", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortedStages.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Campaign name */}
+          <div className="space-y-1.5">
+            <Label>
+              Campaign name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={form.title}
+              onChange={(e) => setField("title", e.target.value)}
+              placeholder="Campaign name…"
+            />
+          </div>
+
+          {/* Outreach + Status */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Outreach stage</Label>
+              <Select
+                value={form.outreachStage}
+                onValueChange={(v) =>
+                  setField("outreachStage", v as OutreachStage)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OUTREACH_STAGES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Campaign status</Label>
+              <Select
+                value={form.dealStatus}
+                onValueChange={(v) => setField("dealStatus", v as DealStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CAMPAIGN_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Placement */}
+          <div className="space-y-1.5">
+            <Label>Placement type</Label>
+            <Select
+              value={form.placementType}
+              onValueChange={(v) =>
+                setField("placementType", v as PlacementType)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PLACEMENT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Start date</Label>
+              <Input
+                type="date"
+                value={form.startDate}
+                onChange={(e) => setField("startDate", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>End date</Label>
+              <Input
+                type="date"
+                value={form.endDate}
+                onChange={(e) => setField("endDate", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Last contact</Label>
+              <Input
+                type="date"
+                value={form.lastContact}
+                onChange={(e) => setField("lastContact", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Next follow-up</Label>
+              <Input
+                type="date"
+                value={form.nextFollowUp}
+                onChange={(e) => setField("nextFollowUp", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-1.5">
+            <Label>Goal</Label>
+            <Textarea
+              rows={2}
+              value={form.goal}
+              onChange={(e) => setField("goal", e.target.value)}
+              placeholder="Campaign goal…"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Negotiation notes</Label>
+            <Textarea
+              rows={2}
+              value={form.negotiationNotes}
+              onChange={(e) => setField("negotiationNotes", e.target.value)}
+              placeholder="Notes from negotiation…"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Requirements</Label>
+            <Textarea
+              rows={2}
+              value={form.requirements}
+              onChange={(e) => setField("requirements", e.target.value)}
+              placeholder="Content requirements…"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notes</Label>
+            <Textarea
+              rows={2}
+              value={form.notes}
+              onChange={(e) => setField("notes", e.target.value)}
+              placeholder="Internal notes…"
+            />
+          </div>
+
+          {/* ── Linked Data ── */}
+          <Separator />
+
+          {/* Linked Content Briefs */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Content Briefs ({linkedBriefs.length})
+            </p>
+            {linkedBriefs.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No briefs linked to this campaign.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {linkedBriefs.map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-3 py-2 gap-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate">{b.title}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {b.contentType} · {b.platform}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {b.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Linked Costs */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Costs ({linkedCosts.length})
+              </p>
+              {totalCostUSD > 0 && (
+                <span className="text-xs font-semibold text-foreground">
+                  Total: $
+                  {totalCostUSD.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              )}
+            </div>
+            {linkedCosts.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No costs linked to this campaign.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {linkedCosts.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-3 py-2 gap-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate">
+                        {e.description}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {e.category} · Due {fmtDate(e.dueDate)}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-medium">
+                        {e.amount > 0
+                          ? `${e.currency} ${e.amount.toLocaleString()}`
+                          : "—"}
+                      </p>
+                      <Badge variant="outline" className="text-[10px]">
+                        {e.paymentStatus}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="border-t px-6 py-4 shrink-0">
+          {confirmDelete ? (
+            <div className="flex items-center gap-3">
+              <p className="flex-1 text-sm text-foreground">
+                Delete this campaign?
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDelete(false)}
+              >
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDelete}>
+                Confirm delete
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Delete
+              </Button>
+              <div className="flex-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (campaign) setForm(initCampaignForm(campaign));
+                  setConfirmDelete(false);
+                }}
+              >
+                Discard
+              </Button>
+              <Button
+                size="sm"
+                className="bg-[#FF4FD8] hover:bg-[#e040c0] text-white"
+                disabled={!form.title || !form.stageId}
+                onClick={handleSave}
+              >
+                Save
+              </Button>
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 // ─── Stage Edit Dialog ────────────────────────────────────────────────────────
 
 interface StageDialogProps {
@@ -596,13 +1053,44 @@ function StageDialog({ open, onClose, stage }: StageDialogProps) {
   );
 }
 
+// ─── Linked Counts (used in both card and table) ─────────────────────────────
+
+function LinkedCounts({ campaignId }: { campaignId: string }) {
+  const briefCount = useContentBriefStore((s) =>
+    s.briefs.reduce((n, b) => n + (b.campaignId === campaignId ? 1 : 0), 0),
+  );
+  const totalCostUSD = useCostStore((s) =>
+    s.entries.reduce(
+      (sum, e) => sum + (e.campaignId === campaignId ? e.amountUSD || 0 : 0),
+      0,
+    ),
+  );
+
+  if (briefCount === 0 && totalCostUSD === 0) return null;
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {briefCount > 0 && (
+        <span className="text-[10px] text-muted-foreground bg-muted/60 rounded px-1.5 py-0.5 whitespace-nowrap">
+          {briefCount} {briefCount === 1 ? "brief" : "briefs"}
+        </span>
+      )}
+      {totalCostUSD > 0 && (
+        <span className="text-[10px] text-muted-foreground bg-muted/60 rounded px-1.5 py-0.5 whitespace-nowrap">
+          ${totalCostUSD.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ─── Campaign Card (Kanban) ───────────────────────────────────────────────────
 
 interface CampaignCardProps {
   campaign: Campaign;
   highlight: boolean;
   stages: CampaignStage[];
-  onEdit: () => void;
+  onSelect: () => void;
   onDelete: () => void;
   isDragging?: boolean;
 }
@@ -611,7 +1099,7 @@ function CampaignCard({
   campaign,
   highlight,
   stages,
-  onEdit,
+  onSelect,
   onDelete,
   isDragging = false,
 }: CampaignCardProps) {
@@ -630,33 +1118,12 @@ function CampaignCard({
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+        <button
+          onClick={onSelect}
+          className="flex-1 text-left text-sm font-medium text-foreground leading-snug line-clamp-2 hover:text-[#FF4FD8] transition-colors cursor-pointer"
+        >
           {campaign.title}
-        </p>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0 -mr-1 -mt-0.5"
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>
-              <Pencil className="h-3.5 w-3.5 mr-2" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={onDelete}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        </button>
       </div>
 
       {campaign.partnerName && (
@@ -672,11 +1139,7 @@ function CampaignCard({
         >
           {campaign.dealStatus}
         </Badge>
-        {campaign.budget > 0 && (
-          <span className="text-xs font-medium text-foreground">
-            {campaign.currency} {campaign.budget.toLocaleString()}
-          </span>
-        )}
+        <LinkedCounts campaignId={campaign.id} />
       </div>
 
       {/* Move between stages */}
@@ -764,8 +1227,7 @@ interface KanbanViewProps {
   allCampaigns: Campaign[];
   stages: CampaignStage[];
   highlightId: string | null;
-  onEditCampaign: (c: Campaign) => void;
-  onDeleteCampaign: (id: string) => void;
+  onSelectCampaign: (c: Campaign) => void;
   onEditStage: (s: CampaignStage) => void;
   onDeleteStage: (s: CampaignStage) => void;
   onAddStage: () => void;
@@ -790,8 +1252,7 @@ function KanbanView({
   campaigns,
   stages,
   highlightId,
-  onEditCampaign,
-  onDeleteCampaign,
+  onSelectCampaign,
   onEditStage,
   onDeleteStage,
   onAddStage,
@@ -924,8 +1385,8 @@ function KanbanView({
                     campaign={c}
                     highlight={c.id === highlightId}
                     stages={stages}
-                    onEdit={() => onEditCampaign(c)}
-                    onDelete={() => onDeleteCampaign(c.id)}
+                    onSelect={() => onSelectCampaign(c)}
+                    onDelete={() => {}}
                   />
                 ))}
               </DroppableColumn>
@@ -955,7 +1416,7 @@ function KanbanView({
               campaign={activeCampaign}
               highlight={false}
               stages={stages}
-              onEdit={() => {}}
+              onSelect={() => {}}
               onDelete={() => {}}
               isDragging
             />
@@ -963,6 +1424,31 @@ function KanbanView({
         ) : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+// ─── Table helpers ────────────────────────────────────────────────────────────
+
+function LinkedBriefCount({ campaignId }: { campaignId: string }) {
+  const count = useContentBriefStore((s) =>
+    s.briefs.reduce((n, b) => n + (b.campaignId === campaignId ? 1 : 0), 0),
+  );
+  return <>{count > 0 ? `${count} brief${count === 1 ? "" : "s"}` : "—"}</>;
+}
+
+function LinkedCostTotal({ campaignId }: { campaignId: string }) {
+  const total = useCostStore((s) =>
+    s.entries.reduce(
+      (sum, e) => sum + (e.campaignId === campaignId ? e.amountUSD || 0 : 0),
+      0,
+    ),
+  );
+  return (
+    <>
+      {total > 0
+        ? `$${total.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+        : "—"}
+    </>
   );
 }
 
@@ -974,7 +1460,6 @@ type SortKey =
   | "dealStatus"
   | "outreachStage"
   | "placementType"
-  | "budget"
   | "startDate"
   | "endDate"
   | "nextFollowUp";
@@ -984,16 +1469,14 @@ interface TableViewProps {
   campaigns: Campaign[];
   stages: CampaignStage[];
   highlightId: string | null;
-  onEditCampaign: (c: Campaign) => void;
-  onDeleteCampaign: (id: string) => void;
+  onSelectCampaign: (c: Campaign) => void;
 }
 
 function TableView({
   campaigns,
   stages,
   highlightId,
-  onEditCampaign,
-  onDeleteCampaign,
+  onSelectCampaign,
 }: TableViewProps) {
   const stageMap = Object.fromEntries(stages.map((s) => [s.id, s]));
   const [sortKey, setSortKey] = React.useState<SortKey>("title");
@@ -1010,10 +1493,8 @@ function TableView({
 
   const sorted = React.useMemo(() => {
     return [...campaigns].sort((a, b) => {
-      const av: string | number =
-        sortKey === "budget" ? a.budget : (a[sortKey] ?? "");
-      const bv: string | number =
-        sortKey === "budget" ? b.budget : (b[sortKey] ?? "");
+      const av: string | number = a[sortKey] ?? "";
+      const bv: string | number = b[sortKey] ?? "";
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
@@ -1082,7 +1563,12 @@ function TableView({
               <SortableHeader col="dealStatus" label="Status" />
               <SortableHeader col="outreachStage" label="Outreach" />
               <SortableHeader col="placementType" label="Placement" />
-              <SortableHeader col="budget" label="Budget" align="right" />
+              <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                Briefs
+              </th>
+              <th className="py-3 px-4 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
+                Cost (USD)
+              </th>
               <SortableHeader col="startDate" label="Start" />
               <SortableHeader col="endDate" label="End" />
               <SortableHeader col="nextFollowUp" label="Next Follow-up" />
@@ -1102,9 +1588,13 @@ function TableView({
                   }`}
                 >
                   <td className="py-3 px-4 font-medium text-foreground max-w-50">
-                    <span className="block truncate" title={c.title}>
+                    <button
+                      onClick={() => onSelectCampaign(c)}
+                      className="block truncate text-left hover:text-[#FF4FD8] transition-colors cursor-pointer"
+                      title={c.title}
+                    >
                       {c.title}
-                    </span>
+                    </button>
                   </td>
                   <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
                     {c.partnerName || "—"}
@@ -1137,10 +1627,11 @@ function TableView({
                   <td className="py-3 px-4 text-muted-foreground text-xs whitespace-nowrap">
                     {c.placementType}
                   </td>
-                  <td className="py-3 px-4 text-right font-medium text-foreground whitespace-nowrap">
-                    {c.budget > 0
-                      ? `${c.currency} ${c.budget.toLocaleString()}`
-                      : "—"}
+                  <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
+                    <LinkedBriefCount campaignId={c.id} />
+                  </td>
+                  <td className="py-3 px-4 text-right text-xs text-muted-foreground whitespace-nowrap">
+                    <LinkedCostTotal campaignId={c.id} />
                   </td>
                   <td className="py-3 px-4 text-muted-foreground text-xs whitespace-nowrap">
                     {c.startDate
@@ -1170,24 +1661,14 @@ function TableView({
                       : "—"}
                   </td>
                   <td className="py-3 px-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => onEditCampaign(c)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => onDeleteCampaign(c.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => onSelectCampaign(c)}
+                    >
+                      Open
+                    </Button>
                   </td>
                 </tr>
               );
@@ -1207,30 +1688,29 @@ function TableView({
 
 function CampaignPageInner() {
   const searchParams = useSearchParams();
-  const { campaigns, stages, highlightId, deleteCampaign, setHighlightId } =
-    useCampaignStore();
+  const { campaigns, stages, highlightId, setHighlightId } = useCampaignStore();
 
   const [view, setView] = React.useState<"kanban" | "table">("kanban");
+
+  // Detail drawer
+  const [selectedCampaign, setSelectedCampaign] =
+    React.useState<Campaign | null>(null);
 
   // Filters
   const [search, setSearch] = React.useState("");
   const [filterStage, setFilterStage] = React.useState("all");
   const [filterStatus, setFilterStatus] = React.useState("all");
 
-  // Dialogs
+  // Create dialog
   const [campaignDialogOpen, setCampaignDialogOpen] = React.useState(false);
-  const [editingCampaign, setEditingCampaign] = React.useState<Campaign | null>(
-    null,
-  );
+
+  // Stage dialogs
   const [stageDialogOpen, setStageDialogOpen] = React.useState(false);
   const [editingStage, setEditingStage] = React.useState<CampaignStage | null>(
     null,
   );
   const [deleteStageTarget, setDeleteStageTarget] =
     React.useState<CampaignStage | null>(null);
-  const [deleteCampaignTarget, setDeleteCampaignTarget] = React.useState<
-    string | null
-  >(null);
 
   // Auto-open dialog if ?new=1
   React.useEffect(() => {
@@ -1245,6 +1725,15 @@ function CampaignPageInner() {
     const t = setTimeout(() => setHighlightId(null), 3000);
     return () => clearTimeout(t);
   }, [highlightId, setHighlightId]);
+
+  // Keep drawer in sync when store updates (e.g. after save)
+  const drawerCampaign = React.useMemo(
+    () =>
+      selectedCampaign
+        ? (campaigns.find((c) => c.id === selectedCampaign.id) ?? null)
+        : null,
+    [campaigns, selectedCampaign],
+  );
 
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase();
@@ -1271,18 +1760,6 @@ function CampaignPageInner() {
     setSearch("");
     setFilterStage("all");
     setFilterStatus("all");
-  }
-
-  function handleEditCampaign(c: Campaign) {
-    setEditingCampaign(c);
-    setCampaignDialogOpen(true);
-  }
-
-  function handleDeleteCampaignConfirm() {
-    if (deleteCampaignTarget) {
-      deleteCampaign(deleteCampaignTarget);
-      setDeleteCampaignTarget(null);
-    }
   }
 
   function handleEditStage(s: CampaignStage) {
@@ -1340,10 +1817,7 @@ function CampaignPageInner() {
           <Button
             size="sm"
             className="gap-1.5 bg-[#FF4FD8] hover:bg-[#e040c0] text-white"
-            onClick={() => {
-              setEditingCampaign(null);
-              setCampaignDialogOpen(true);
-            }}
+            onClick={() => setCampaignDialogOpen(true)}
           >
             <Plus className="h-4 w-4" />
             New campaign
@@ -1446,8 +1920,7 @@ function CampaignPageInner() {
           allCampaigns={campaigns}
           stages={stages}
           highlightId={highlightId}
-          onEditCampaign={handleEditCampaign}
-          onDeleteCampaign={(id) => setDeleteCampaignTarget(id)}
+          onSelectCampaign={setSelectedCampaign}
           onEditStage={handleEditStage}
           onDeleteStage={(s) => setDeleteStageTarget(s)}
           onAddStage={() => {
@@ -1460,21 +1933,22 @@ function CampaignPageInner() {
           campaigns={filtered}
           stages={stages}
           highlightId={highlightId}
-          onEditCampaign={handleEditCampaign}
-          onDeleteCampaign={(id) => setDeleteCampaignTarget(id)}
+          onSelectCampaign={setSelectedCampaign}
         />
       )}
 
       {/* ── Dialogs ── */}
 
+      {/* Create-only dialog */}
       <CampaignDialog
         open={campaignDialogOpen}
-        onClose={() => {
-          setCampaignDialogOpen(false);
-          setEditingCampaign(null);
-        }}
-        initial={editingCampaign ?? undefined}
-        editId={editingCampaign?.id}
+        onClose={() => setCampaignDialogOpen(false)}
+      />
+
+      {/* Detail drawer (edit / delete) */}
+      <CampaignDetailDrawer
+        campaign={drawerCampaign}
+        onClose={() => setSelectedCampaign(null)}
       />
 
       <StageDialog
@@ -1485,30 +1959,6 @@ function CampaignPageInner() {
         }}
         stage={editingStage ?? undefined}
       />
-
-      <AlertDialog
-        open={!!deleteCampaignTarget}
-        onOpenChange={(v) => !v && setDeleteCampaignTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete campaign?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The campaign will be permanently
-              deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteCampaignConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog
         open={!!deleteStageTarget}

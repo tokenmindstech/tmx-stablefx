@@ -11,7 +11,6 @@ import {
   Settings,
   HelpCircle,
   Database,
-  GitBranch,
   FileText,
   ShieldCheck,
   ArrowRightLeft,
@@ -45,7 +44,6 @@ const NAV_MAIN = [
         href: "/dashboard/database-partner",
       },
       { label: "Campaign", icon: Megaphone, href: "/dashboard/campaign" },
-      { label: "Pipeline", icon: GitBranch, href: "/dashboard/pipeline" },
       {
         label: "Content / Brief",
         icon: FileText,

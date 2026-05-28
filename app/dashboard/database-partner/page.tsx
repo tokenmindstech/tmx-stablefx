@@ -13,6 +13,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   BadgeCheck,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   KOL_DATA,
   KOL_NICHES,
@@ -103,6 +109,25 @@ export default function KolDatabasePage() {
   const handlePageChange = (p: number) =>
     setPage(Math.max(1, Math.min(p, totalPages)));
 
+  const activeFilterCount = [
+    niche !== "any",
+    region !== "any",
+    platform !== "all",
+    risk !== "all",
+    minFollowers !== "0" && minFollowers !== "",
+    maxFollowers !== "",
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setNiche("any");
+    setRegion("any");
+    setPlatform("all");
+    setRisk("all");
+    setMinFollowers("0");
+    setMaxFollowers("");
+    setPage(1);
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-6 bg-background min-h-screen">
       {/* Page Header */}
@@ -131,161 +156,187 @@ export default function KolDatabasePage() {
         </div>
       </div>
 
-      {/* Search + Filters */}
+      {/* Search + Filter */}
       <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or language"
-            className="pl-9 bg-background"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
-
-        {/* Filter Row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {/* Niche */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">
-              Niche
-            </label>
-            <Select
-              value={niche}
-              onValueChange={(v) => {
-                setNiche(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-sm bg-background">
-                <SelectValue placeholder="Any" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">Any</SelectItem>
-                {KOL_NICHES.map((n) => (
-                  <SelectItem key={n} value={n}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Region */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">
-              Region
-            </label>
-            <Select
-              value={region}
-              onValueChange={(v) => {
-                setRegion(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-sm bg-background">
-                <SelectValue placeholder="Any" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">Any</SelectItem>
-                {regions.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Platform */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">
-              Platform
-            </label>
-            <Select
-              value={platform}
-              onValueChange={(v) => {
-                setPlatform(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-sm bg-background">
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {KOL_PLATFORMS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Risk */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">
-              Risk
-            </label>
-            <Select
-              value={risk}
-              onValueChange={(v) => {
-                setRisk(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 text-sm bg-background">
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Min Followers */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">
-              Min followers
-            </label>
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              type="number"
-              min={0}
-              placeholder="0"
-              className="h-8 text-sm bg-background"
-              value={minFollowers}
+              placeholder="Search by name or language"
+              className="pl-9 bg-background"
+              value={search}
               onChange={(e) => {
-                setMinFollowers(e.target.value);
+                setSearch(e.target.value);
                 setPage(1);
               }}
             />
           </div>
 
-          {/* Max Followers */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted-foreground font-medium">
-              Max followers
-            </label>
-            <Input
-              type="number"
-              min={0}
-              placeholder="∞"
-              className="h-8 text-sm bg-background"
-              value={maxFollowers}
-              onChange={(e) => {
-                setMaxFollowers(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
+          {/* Filter Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <Badge className="ml-1 h-5 min-w-5 px-1 text-xs bg-[#FF4FD8] text-white hover:bg-[#FF4FD8]">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold">Filters</span>
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-col gap-3">
+                {/* Niche */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">
+                    Niche
+                  </label>
+                  <Select
+                    value={niche}
+                    onValueChange={(v) => {
+                      setNiche(v);
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm bg-background">
+                      <SelectValue placeholder="Any" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      {KOL_NICHES.map((n) => (
+                        <SelectItem key={n} value={n}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Region */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">
+                    Region
+                  </label>
+                  <Select
+                    value={region}
+                    onValueChange={(v) => {
+                      setRegion(v);
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm bg-background">
+                      <SelectValue placeholder="Any" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      {regions.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Platform */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">
+                    Platform
+                  </label>
+                  <Select
+                    value={platform}
+                    onValueChange={(v) => {
+                      setPlatform(v);
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm bg-background">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {KOL_PLATFORMS.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Risk */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">
+                    Risk
+                  </label>
+                  <Select
+                    value={risk}
+                    onValueChange={(v) => {
+                      setRisk(v);
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm bg-background">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Followers range */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted-foreground font-medium">
+                    Followers range
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Min"
+                      className="h-8 text-sm bg-background"
+                      value={minFollowers}
+                      onChange={(e) => {
+                        setMinFollowers(e.target.value);
+                        setPage(1);
+                      }}
+                    />
+                    <span className="text-muted-foreground text-xs shrink-0">
+                      to
+                    </span>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="∞"
+                      className="h-8 text-sm bg-background"
+                      value={maxFollowers}
+                      onChange={(e) => {
+                        setMaxFollowers(e.target.value);
+                        setPage(1);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

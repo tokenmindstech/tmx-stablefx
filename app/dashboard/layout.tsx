@@ -30,6 +30,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Fragment } from "react";
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
 
@@ -206,7 +207,7 @@ export default function DashboardLayout({
                 : "text-foreground hover:bg-[#FFF5FC] hover:text-[#FF4FD8]",
             );
             const content = (
-              <>
+              <Fragment>
                 <item.icon className="size-4 shrink-0" />
                 {!collapsed && (
                   <>
@@ -224,7 +225,7 @@ export default function DashboardLayout({
                     style={{ background: "#FF4FD8" }}
                   />
                 )}
-              </>
+              </Fragment>
             );
             if (!hasChildren && (item as { href?: string }).href) {
               return (
@@ -270,10 +271,10 @@ export default function DashboardLayout({
                 : "text-muted-foreground hover:bg-[#FFF5FC] hover:text-[#FF4FD8]",
             );
             const content = (
-              <>
+              <Fragment>
                 <item.icon className="size-4 shrink-0" />
                 {!collapsed && <span className="truncate">{item.label}</span>}
-              </>
+              </Fragment>
             );
             if ((item as { href?: string }).href) {
               return (
@@ -326,7 +327,7 @@ export default function DashboardLayout({
       {/* ── Flyout submenu (hover-triggered) ── */}
       {showFlyout && hoveredNav && (
         <div
-          className="fixed z-50 bg-white border border-border rounded-lg shadow-xl overflow-hidden"
+          className="fixed z-50 bg-white max-w-xs border border-border rounded-lg shadow-xl overflow-hidden"
           style={{
             left: sidebarW,
             top: flyoutY,

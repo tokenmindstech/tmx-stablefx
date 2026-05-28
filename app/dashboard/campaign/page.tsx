@@ -63,6 +63,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   useCampaignStore,
   type Campaign,
   type CampaignStage,
@@ -84,7 +92,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { KOL_DATA } from "@/lib/kol-data";
+import { useKOLStore } from "@/lib/kol-store";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -168,6 +176,7 @@ function CampaignDialog({
   editId,
 }: CampaignDialogProps) {
   const { stages, addCampaign, updateCampaign } = useCampaignStore();
+  const { kols } = useKOLStore();
   const router = useRouter();
 
   const sortedStages = [...stages].sort((a, b) => a.order - b.order);
@@ -193,16 +202,7 @@ function CampaignDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const [kolSearch, setKolSearch] = React.useState("");
-
-  const filteredKols = React.useMemo(() => {
-    const q = kolSearch.toLowerCase();
-    return KOL_DATA.filter(
-      (k) =>
-        k.name.toLowerCase().includes(q) ||
-        k.username.toLowerCase().includes(q),
-    ).slice(0, 8);
-  }, [kolSearch]);
+  const [partnerOpen, setPartnerOpen] = React.useState(false);
 
   function setField<K extends keyof typeof form>(
     key: K,
@@ -212,7 +212,7 @@ function CampaignDialog({
   }
 
   function handleKolSelect(kolId: string) {
-    const kol = KOL_DATA.find((k) => k.id === kolId);
+    const kol = kols.find((k) => k.id === kolId);
     if (!kol) return;
     setForm((f) => ({
       ...f,
@@ -257,7 +257,7 @@ function CampaignDialog({
                   className="bg-muted/50"
                 />
               ) : (
-                <Popover>
+                <Popover open={partnerOpen} onOpenChange={setPartnerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
@@ -267,41 +267,41 @@ function CampaignDialog({
                       {form.partnerName || "Select partner…"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-72 p-2">
-                    <Input
-                      placeholder="Search KOL…"
-                      value={kolSearch}
-                      onChange={(e) => setKolSearch(e.target.value)}
-                      className="mb-2"
-                    />
-                    <div className="max-h-48 overflow-y-auto space-y-0.5">
-                      {filteredKols.map((k) => (
-                        <button
-                          key={k.id}
-                          type="button"
-                          onClick={() => handleKolSelect(k.id)}
-                          className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-muted flex items-center gap-2"
-                        >
-                          <div className="h-6 w-6 rounded-full bg-linear-to-br from-[#FF4FD8] to-[#A855F7] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                            {k.name[0].toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-medium">{k.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              @{k.username}
-                            </div>
-                          </div>
-                          {form.kolId === k.id && (
-                            <Check className="h-4 w-4 text-[#FF4FD8] ml-auto" />
-                          )}
-                        </button>
-                      ))}
-                      {filteredKols.length === 0 && (
-                        <p className="text-xs text-muted-foreground px-2 py-2">
-                          No results
-                        </p>
-                      )}
-                    </div>
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <Command className="max-h-[340px]">
+                      <CommandInput placeholder="Search KOL by name or username…" />
+                      <CommandList>
+                        <CommandEmpty>No KOLs found.</CommandEmpty>
+                        <CommandGroup>
+                          {kols.map((k) => (
+                            <CommandItem
+                              key={k.id}
+                              value={`${k.name} ${k.username}`}
+                              onSelect={() => {
+                                handleKolSelect(k.id);
+                                setPartnerOpen(false);
+                              }}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <div className="h-6 w-6 rounded-full bg-linear-to-br from-[#FF4FD8] to-[#A855F7] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                                {k.name[0].toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">
+                                  {k.name}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  @{k.username}
+                                </div>
+                              </div>
+                              {form.kolId === k.id && (
+                                <Check className="h-4 w-4 text-[#FF4FD8] shrink-0" />
+                              )}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
                   </PopoverContent>
                 </Popover>
               )}

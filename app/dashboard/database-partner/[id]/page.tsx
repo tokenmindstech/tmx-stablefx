@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Mail,
@@ -21,11 +21,41 @@ import {
   CheckCircle2,
   Clock,
   PauseCircle,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  useCampaignStore,
+  type DealStatus,
+  type OutreachStage,
+  type PlacementType,
+  type Currency,
+} from "@/lib/campaign-store";
 import {
   KOL_DATA,
   formatFollowers,
@@ -33,6 +63,342 @@ import {
   type KOLRisk,
   type ContactMethod,
 } from "@/lib/kol-data";
+
+// ─── Inline deal dialog (Add to Campaign) ─────────────────────────────────────
+
+const DEAL_STATUSES: DealStatus[] = [
+  "Active",
+  "On Hold",
+  "Closed Won",
+  "Closed Lost",
+];
+const OUTREACH_STAGES: OutreachStage[] = [
+  "Not Contacted",
+  "Contacted",
+  "Negotiating",
+  "Contract Sent",
+  "Content in Progress",
+  "Published",
+];
+const PLACEMENT_TYPES: PlacementType[] = [
+  "Sponsored Post",
+  "Listicle Inclusion",
+  "Product Review",
+  "Giveaway",
+  "AMA",
+  "Thread",
+  "Video",
+  "Podcast",
+  "Newsletter",
+  "Other",
+];
+const CURRENCIES: Currency[] = ["USD", "EUR", "GBP", "USDT", "BTC", "ETH"];
+
+interface AddToCampaignDialogProps {
+  open: boolean;
+  onClose: () => void;
+  kolId: string;
+  partnerName: string;
+}
+
+function AddToCampaignDialog({
+  open,
+  onClose,
+  kolId,
+  partnerName,
+}: AddToCampaignDialogProps) {
+  const { stages, addCampaign, setHighlightId } = useCampaignStore();
+  const router = useRouter();
+  const sortedStages = [...stages].sort((a, b) => a.order - b.order);
+
+  const [title, setTitle] = React.useState("");
+  const [stageId, setStageId] = React.useState("");
+  const [dealStatus, setDealStatus] = React.useState<DealStatus>("Active");
+  const [outreachStage, setOutreachStage] =
+    React.useState<OutreachStage>("Not Contacted");
+  const [placementType, setPlacementType] =
+    React.useState<PlacementType>("Sponsored Post");
+  const [budget, setBudget] = React.useState("");
+  const [currency, setCurrency] = React.useState<Currency>("USD");
+  const [startDate, setStartDate] = React.useState("");
+  const [endDate, setEndDate] = React.useState("");
+  const [lastContact, setLastContact] = React.useState("");
+  const [nextFollowUp, setNextFollowUp] = React.useState("");
+  const [goal, setGoal] = React.useState("");
+  const [negotiationNotes, setNegotiationNotes] = React.useState("");
+  const [requirements, setRequirements] = React.useState("");
+  const [notes, setNotes] = React.useState("");
+
+  React.useEffect(() => {
+    if (open) {
+      setTitle(partnerName);
+      setStageId(sortedStages[0]?.id ?? "");
+      setDealStatus("Active");
+      setOutreachStage("Not Contacted");
+      setPlacementType("Sponsored Post");
+      setBudget("");
+      setCurrency("USD");
+      setStartDate("");
+      setEndDate("");
+      setLastContact("");
+      setNextFollowUp("");
+      setGoal("");
+      setNegotiationNotes("");
+      setRequirements("");
+      setNotes("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title || !stageId) return;
+    const id = addCampaign({
+      title,
+      kolId,
+      partnerName,
+      stageId,
+      dealStatus,
+      outreachStage,
+      placementType,
+      budget: Number(budget) || 0,
+      currency,
+      startDate,
+      endDate,
+      lastContact,
+      nextFollowUp,
+      goal,
+      negotiationNotes,
+      requirements,
+      notes,
+    });
+    setHighlightId(id);
+    onClose();
+    router.push("/dashboard/campaign");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Add to Campaign</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+          {/* Partner (locked) */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Partner</Label>
+              <Input value={partnerName} disabled className="bg-muted/50" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Stage</Label>
+              <Select value={stageId} onValueChange={setStageId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortedStages.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>
+              Deal name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Sponsored post — ilodiwow"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Outreach stage</Label>
+              <Select
+                value={outreachStage}
+                onValueChange={(v) => setOutreachStage(v as OutreachStage)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OUTREACH_STAGES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Deal status</Label>
+              <Select
+                value={dealStatus}
+                onValueChange={(v) => setDealStatus(v as DealStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEAL_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label>Placement type</Label>
+              <Select
+                value={placementType}
+                onValueChange={(v) => setPlacementType(v as PlacementType)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLACEMENT_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Budget</Label>
+              <Input
+                type="number"
+                min={0}
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Currency</Label>
+              <Select
+                value={currency}
+                onValueChange={(v) => setCurrency(v as Currency)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Start date</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>End date</Label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Last contact</Label>
+              <Input
+                type="date"
+                value={lastContact}
+                onChange={(e) => setLastContact(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Next follow up</Label>
+              <Input
+                type="date"
+                value={nextFollowUp}
+                onChange={(e) => setNextFollowUp(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-1.5">
+            <Label>Goal</Label>
+            <Textarea
+              rows={2}
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder="Describe the campaign goal…"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Negotiation notes</Label>
+            <Textarea
+              rows={2}
+              value={negotiationNotes}
+              onChange={(e) => setNegotiationNotes(e.target.value)}
+              placeholder="Notes from negotiation…"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Requirements</Label>
+            <Textarea
+              rows={2}
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              placeholder="Content requirements…"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notes</Label>
+            <Textarea
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Internal notes…"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-[#FF4FD8] hover:bg-[#e040c0] text-white"
+              disabled={!title || !stageId}
+            >
+              Add to Campaign
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const PLATFORM_LABEL: Record<KOLPlatform, string> = {
   X: "X (Twitter)",
@@ -115,9 +481,16 @@ function StatCard({
   );
 }
 
-export default function KolDetailPage({ params }: { params: { id: string } }) {
-  const kol = KOL_DATA.find((k) => k.id === params.id);
+export default function KolDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = React.use(params);
+  const kol = KOL_DATA.find((k) => k.id === id);
   if (!kol) notFound();
+
+  const [addToCampaignOpen, setAddToCampaignOpen] = React.useState(false);
 
   const initials = kol.name
     .split(/[^a-zA-Z0-9]/)
@@ -150,8 +523,8 @@ export default function KolDetailPage({ params }: { params: { id: string } }) {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-5 items-start">
             {/* Avatar */}
-            <div className="flex-shrink-0">
-              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-[#FF4FD8] to-[#A855F7] flex items-center justify-center text-white text-2xl font-bold shadow-md">
+            <div className="shrink-0">
+              <div className="h-20 w-20 rounded-2xl bg-linear-to-br from-[#FF4FD8] to-[#A855F7] flex items-center justify-center text-white text-2xl font-bold shadow-md">
                 {initials}
               </div>
             </div>
@@ -226,22 +599,32 @@ export default function KolDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Contacts */}
-            <div className="flex flex-col gap-2 min-w-[180px]">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Contacts
-              </p>
-              {kol.contacts.map((c, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 text-sm text-foreground"
-                >
-                  <span className="text-muted-foreground">
-                    {CONTACT_ICON[c.type]}
-                  </span>
-                  <span className="text-xs">{c.value}</span>
-                </div>
-              ))}
+            {/* Contacts + Actions */}
+            <div className="flex flex-col gap-3 min-w-45">
+              <Button
+                size="sm"
+                className="gap-1.5 bg-[#FF4FD8] hover:bg-[#e040c0] text-white w-full"
+                onClick={() => setAddToCampaignOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Add to Campaign
+              </Button>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Contacts
+                </p>
+                {kol.contacts.map((c, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-sm text-foreground"
+                  >
+                    <span className="text-muted-foreground">
+                      {CONTACT_ICON[c.type]}
+                    </span>
+                    <span className="text-xs">{c.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -369,7 +752,7 @@ export default function KolDetailPage({ params }: { params: { id: string } }) {
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#FF4FD8] to-[#A855F7]"
+                      className="h-full rounded-full bg-linear-to-r from-[#FF4FD8] to-[#A855F7]"
                       style={{ width: `${d.percentage}%` }}
                     />
                   </div>
@@ -396,7 +779,7 @@ export default function KolDetailPage({ params }: { params: { id: string } }) {
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#FF4FD8] to-[#A855F7]"
+                      className="h-full rounded-full bg-linear-to-r from-[#FF4FD8] to-[#A855F7]"
                       style={{ width: `${c.percentage}%` }}
                     />
                   </div>
@@ -588,6 +971,14 @@ export default function KolDetailPage({ params }: { params: { id: string } }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add to Campaign dialog */}
+      <AddToCampaignDialog
+        open={addToCampaignOpen}
+        onClose={() => setAddToCampaignOpen(false)}
+        kolId={kol.id}
+        partnerName={kol.name}
+      />
     </div>
   );
 }

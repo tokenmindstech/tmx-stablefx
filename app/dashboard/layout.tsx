@@ -8,7 +8,6 @@ import {
   Users,
   DollarSign,
   Activity,
-  TrendingUp,
   Settings,
   HelpCircle,
   Database,
@@ -22,7 +21,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
-  BookMarked,
   BarChart3,
   Zap,
   Sparkles,
@@ -36,13 +34,6 @@ import { Fragment } from "react";
 
 const NAV_MAIN = [
   { id: "home", label: "Home", icon: Home, href: "/dashboard", items: [] },
-  {
-    id: "bookmarks",
-    label: "Bookmarks",
-    icon: BookMarked,
-    href: "/dashboard/bookmarks",
-    items: [],
-  },
   {
     id: "geo-kol",
     label: "GEO / KOL",
@@ -82,13 +73,6 @@ const NAV_MAIN = [
       },
       { label: "ICO / STO", icon: Landmark, href: "/dashboard/ico-sto" },
     ],
-  },
-  {
-    id: "marketing",
-    label: "Marketing",
-    icon: TrendingUp,
-    href: "/dashboard/marketing",
-    items: [],
   },
   {
     id: "analytics",
